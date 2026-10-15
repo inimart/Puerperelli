@@ -170,7 +170,7 @@ button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 .hof li.empty{display:block;color:var(--dim);font-weight:400}
 .hof li.empty::before{content:none}
 .labor{position:absolute;left:6px;right:6px;bottom:6px;display:grid;grid-template-columns:auto 1fr;gap:6px;align-items:center;background:rgba(18,13,24,.86);padding:4px 6px;pointer-events:none;z-index:3}
-.labor span{font:600 12px/1 var(--body);color:var(--pink);letter-spacing:.06em;text-transform:uppercase}
+.labor span{font:600 12px/1 var(--body);font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--pink);letter-spacing:.06em;text-transform:uppercase}
 .labor .lb{height:8px;background:#100c15;border:2px solid var(--shadow);position:relative;overflow:hidden}
 .labor .lb i{position:absolute;inset:0 auto 0 0;width:0;background:var(--pink)}
 .labor.hi .lb i{background:var(--red);animation:blink .4s steps(2) infinite}
@@ -270,7 +270,7 @@ a.sh:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
     <canvas id="top" width="176" height="104"></canvas>
     <div class="tag"><i style="--c:var(--pink)"></i>Stanza 412 · Ilary</div>
     <div class="layer" id="topLayer"></div>
-    <div class="labor" id="labor"><span>Travaglio</span><div class="lb"><i id="laborBar"></i></div></div>
+    <div class="labor" id="labor"><span id="laborT">Travaglio 0%</span><div class="lb"><i id="laborBar"></i></div></div>
   </section>
 
   <section class="scene" id="botWrap">
@@ -1045,8 +1045,8 @@ function reset(){
 function update(dt){
   const s=SC[G.room], t=G.gt-G.phaseT;
   if(G.phase==='boss'||G.phase==='bosswin'){ updBoss1(dt); return; }
-  if(['idle','act','done','enter','exit','fadeout'].includes(G.phase)) G.labor=Math.min(100,G.labor+dt/1500);
-  if(G.labor>=100&&['idle','act','done'].includes(G.phase)){ startBoss1(); return; }
+  if(['idle','act','done','enter','exit','fadeout'].includes(G.phase)) G.labor=Math.min(100,G.labor+dt/(G.labor>=80?700:1500));
+  if(G.labor>=100&&['idle','act','done','enter','exit','fadeout'].includes(G.phase)){ startBoss1(); return; }
   if(G.phase==='enter'||G.phase==='exit'){
     const dx=G.tx-G.lx, dy=G.ty-G.ly, d=Math.hypot(dx,dy), step=dt/1000*3.2;
     if(d>step){G.lx+=dx/d*step; G.ly+=dy/d*step; G.moving=true;}
@@ -1179,7 +1179,7 @@ function updateTask(){
   if(key!==lastUI){lastUI=key; $('#taskT').textContent=t; $('#taskS').textContent=s; $('#taskN').textContent=n; task.className='task '+cls; $('#taskBarWrap').hidden=!bar;}
   $('#taskBar').style.width=w.toFixed(1)+'%';
   const h=$('#hint'); h.hidden=!hint; if(hint){$('#hintT').textContent=hint; h.className='hint '+hcls;}
-  const lab=$('#labor'); $('#laborBar').style.width=G.labor.toFixed(1)+'%'; lab.classList.toggle('hi',G.labor>85);
+  const lab=$('#labor'); $('#laborBar').style.width=G.labor.toFixed(1)+'%'; lab.classList.toggle('hi',G.labor>=100); const lt=G.labor>=100?'Ci siamo!':'Travaglio '+Math.floor(G.labor)+'%'; if($('#laborT').textContent!==lt) $('#laborT').textContent=lt;
   $('#rooms').classList.toggle('cta',G.mode==='play'&&!G.imp&&G.phase==='idle'&&G.room==='attesa');
 }
 
@@ -2085,7 +2085,7 @@ const CLEANER=npc('#3a2a20','#e0ae88','#3f8fd6','#2a3a6a');
 const cleanerHead=()=>{const [x,y]=isoAt(9,7,6.4,1.4,0); return [x,y-22];};
 function startBoss1(){
   clearBalloons(); G.items=[]; endTrap(); G.noise=null; G.pw.caffe=0;
-  G.room='attesa'; G.inCar=G.inWC=false; G.la=1; G.lx=4.5; G.ly=2.8; G.fade=0; G.moving=false;
+  G.room='attesa'; G.next=null; G.inCar=G.inWC=false; G.la=1; G.lx=4.5; G.ly=2.8; G.fade=0; G.moving=false;
   G.boss={prog:0,need:26,end:G.gt+15000,sweep:G.gt+2400};
   setPhase('boss'); updateUI(); camShake(); sfx.ring();
   bigFx('BOSS!','Scopa e secchio bloccano la sala parto','night');
