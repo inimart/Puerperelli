@@ -1263,7 +1263,7 @@ function renderHof(el,list,me){
   el.innerHTML='';
   if(!list.length){const li=document.createElement('li'); li.className='empty'; li.textContent='Ancora nessun record. Il primo posto è libero!'; el.appendChild(li); return;}
   for(const r of list){
-    const li=document.createElement('li'); if(me&&r.at===me.at&&r.name===me.name&&r.score===me.score) li.className='me';
+    const li=document.createElement('li'); if(me&&r.name===me.name&&r.score===me.score&&r.lv===me.lv) li.className='me';
     const nm=document.createElement('span'); nm.className='nm'; nm.textContent=r.name;
     if(r.stars){const st=document.createElement('span'); st.className='st'; st.textContent='★'.repeat(r.stars); nm.appendChild(st);}
     const lv=document.createElement('span'); lv.className='lv'; lv.textContent='LV '+r.lv;
@@ -1275,7 +1275,7 @@ $('#hofBtn').addEventListener('click',async()=>{
   audioInit(); sfx.click(); $('#titleScreen').hidden=true; $('#hofScreen').hidden=false;
   renderHof($('#hofList'),[]); $('#hofList').innerHTML='<li class="empty">Caricamento…</li>';
   const r=await hofTop(); renderHof($('#hofList'),r.list);
-  $('#hofNote').textContent='Classifica globale di Puerperelli Hospital, con i tuoi record di questo dispositivo';
+  $('#hofNote').textContent=r.live?'Classifica globale, aggiornata in tempo reale':'Classifica non raggiungibile: mostro quella salvata';
 });
 $('#stars').addEventListener('click',()=>{ if(G.mode!=='play') return; audioInit(); sfx.click(); G.paused=true; dpStop(); duck(.08);
   renderMisList($('#pauseMis'),G.missions); $('#misScreen').hidden=false; });
@@ -2207,6 +2207,24 @@ function frame(ts){
 }
 document.addEventListener('visibilitychange',()=>{ if(!A.ctx)return; if(document.hidden) A.ctx.suspend(); else A.ctx.resume(); last=0; });
 requestAnimationFrame(frame);
+
+/* ===== GitHub Pages: classifica globale su Supabase ===== */
+const SUPA_URL='https://zuivihayyfourjkuoxne.supabase.co', SUPA_KEY='sb_publishable_9r4scvFSM5cjhj2SYebwIQ_XusSH8ml';
+const SUPA_H={apikey:SUPA_KEY,'Content-Type':'application/json'};
+async function hofTop(){
+  let runs=[], live=false;
+  try{
+    const r=await fetch(SUPA_URL+'/rest/v1/scores?select=name,score,lv,stars,created_at&order=score.desc,created_at.asc&limit=10',{headers:SUPA_H});
+    if(r.ok){ const rows=await r.json(); live=true; runs=rows.map(x=>({name:x.name,score:x.score,lv:x.lv,stars:x.stars,at:Date.parse(x.created_at)||0})); }
+  }catch(e){}
+  if(!live) runs=[...HOF_SNAPSHOT,...HOF.local];
+  return {list:top10(runs),shared:live,live};
+}
+async function hofAdd(entry){
+  HOF.local=top10([...HOF.local,entry]); try{localStorage.setItem('puerperelli-hof',JSON.stringify(HOF.local));}catch(e){}
+  try{ await fetch(SUPA_URL+'/rest/v1/scores',{method:'POST',headers:{...SUPA_H,Prefer:'return=minimal'},
+    body:JSON.stringify({name:String(entry.name).trim().slice(0,10)||'Anonimo',score:Math.max(0,Math.min(100000,Math.round(entry.score))),lv:entry.lv===2?2:1,stars:Math.max(0,Math.min(6,entry.stars|0))})}); }catch(e){}
+}
 })();
 </script>
 
